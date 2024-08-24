@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 export type Role = 'INTERN' | 'ENGINEER' | 'ADMIN';
 
@@ -46,17 +48,22 @@ export class UsersService {
 
   findAll(role?: Role) {
     if (role) {
-      return this.users.filter((user) => user.role === role);
+      const usersByRole = this.users.filter((user) => user.role === role);
+      if (usersByRole.length === 0)
+        throw new NotFoundException('No Users Found');
+      return usersByRole;
     }
     return this.users;
   }
 
   findOne(id: number) {
     const user = this.users.find((user) => user.id === id);
+
+    if (!user) throw new NotFoundException('User Not Found');
     return user;
   }
 
-  create(user: Omit<User, 'id'>) {
+  create(user: CreateUserDto) {
     // Sort does not return a copy instead it modifies original array
     // Because of that we did array destructuring
     const usersByHighestId = [...this.users].sort((a, b) => b.id - a.id);
@@ -70,7 +77,7 @@ export class UsersService {
 
   // Partial makes all properties optional
   // Update is PATCH method and all properties are optional
-  update(id: number, updatedUser: Partial<Omit<User, 'id'>>) {
+  update(id: number, updatedUser: UpdateUserDto) {
     this.users = this.users.map((user) => {
       if (user.id === id) {
         return { ...user, ...updatedUser };
