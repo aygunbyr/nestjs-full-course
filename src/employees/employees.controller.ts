@@ -10,7 +10,9 @@ import {
 } from '@nestjs/common';
 import { EmployeesService } from './employees.service';
 import { Prisma, Role } from '@prisma/client';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 
+@SkipThrottle()
 @Controller('employees')
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
@@ -20,11 +22,14 @@ export class EmployeesController {
     return this.employeesService.create(createEmployeeDto);
   }
 
+  @SkipThrottle({ default: false }) // do not skip throttle & rate limit only this endpoint
   @Get()
   findAll(@Query('roles') role?: Role) {
     return this.employeesService.findAll(role);
   }
 
+  // override rate limit declared in app module
+  @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.employeesService.findOne(+id);
